@@ -1,0 +1,92 @@
+#!/usr/bin/env node
+
+var Khaos = require('khaos-patched')
+var metadata = require('read-metadata');
+var program = require('commander');
+var exists = require('fs').existsSync;
+var path = require('path');
+var chalk = require('chalk');
+var logger = require('../lib/logger');
+var fs = require('fs');
+
+var page = {
+    help: function() {
+        console.log();
+        console.log('  例:');
+        console.log('    $ mov view temps/project1 viewDemo');
+        console.log();
+        console.log('  或者:');
+        console.log(chalk.gray('    # 可以使用temps中的模版'));
+        console.log('    $ mov view project1 viewDemo');
+        console.log('  简写:');
+        console.log('    $ mov view pageDemo');
+        console.log();
+    },
+    run: function() {
+        var rawName = '';
+        if (program.args.length === 1) {
+            this.template = 'temps/views1';
+            var rawName = program.args[0];
+        } else {
+            this.template = program.args[0];
+            if (this.template.indexOf('/') === -1) {
+                this.template = 'temps/' + this.template;
+            }
+            var rawName = program.args[1];
+        }
+        this.name = rawName;
+        var to = path.resolve('./source/views/', rawName || '.');
+        if(this.fsExistsSync(to)) {
+            console.log(chalk.gray(this.name + ' 已经在./source/views/中存在'));
+            return;
+        };
+        this.build(to);
+    },
+    build: function(to) {
+        this.generate(this.template, to, function(err) {
+            if (err) logger.fatal(err)
+            logger.success('创建成功 "%s".', this.name)
+        }.bind(this))
+    },
+    generate: function(src, dest, fn) {
+        var template = path.join(src, 'template')
+        var khaos = new Khaos(template)
+        var opts = this.options(src)
+        khaos.schema(opts.schema)
+        khaos.generate(dest, fn)
+    },
+    options: function(dir) {
+        var file = path.join(dir, 'meta.json')
+        var opts = exists(file) ?
+            metadata.sync(file) : {}
+        this.setDefault(opts, 'name', this.name)
+        return opts
+    },
+    fsExistsSync: function(path) {
+        try {
+            fs.accessSync(path, fs.F_OK);
+        } catch (e) {
+            return false;
+        }
+        return true;
+    },
+    setDefault(opts, key, val) {
+        var schema = opts.schema || (opts.schema = {})
+        if (!schema[key] || typeof schema[key] !== 'object') {
+            schema[key] = {
+                'type': 'string',
+                'default': val
+            }
+        } else {
+            schema[key]['default'] = val
+        }
+    },
+    init: function() {
+        program.usage('<template-name> [page-name]')
+        program.on('--help', this.help);
+        program.parse(process.argv);
+        if (program.args.length < 1) return program.help();
+        this.run();
+    }
+}
+page.init();

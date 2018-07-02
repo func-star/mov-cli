@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+
+var child_process = require('child_process');
+var fs = require('fs');
+var path = require('path');
+var chalk = require('chalk');
+var logger = require('../lib/logger');
+
+var lib = {
+    init: function() {
+        child_process.spawn('rm', ['-rf', 'src/mov/lib']);
+        if(process.cwd().slice(-3) === 'mov'){
+            console.log(chalk.gray('不可以在mov文件夹下操作'));
+            return;
+        }
+        if (!fs.existsSync('src/mov')) {
+            fs.mkdirSync('src/mov');
+            fs.mkdirSync('src/mov/private');
+        }
+        child_process.spawn('cp', ['-r', 'mov/lib', 'src/mov/lib'])
+        logger.success('同步成功 from mov to src/mov');
+    }
+}
+lib.init();

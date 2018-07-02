@@ -1,0 +1,8 @@
+#!/usr/bin/env node
+
+require('commander')
+  .version(require('../package').version)
+  .usage('<command> [options]')
+  .command('page', 'H5根据temps文件夹下模版创建新页面')
+  .command('view', 'PC根据temps文件夹下模版创建新页面')
+  .parse(process.argv)
